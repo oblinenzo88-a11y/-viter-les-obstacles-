@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Évite les obstacles</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#111827;color:white;font-family:Arial;text-align:center;touch-action:none}
+h1{margin:16px 0 6px;font-size:26px}#score{font-size:20px;margin:6px}
+#game{position:relative;margin:auto;width:min(92vw,420px);height:70vh;min-height:480px;max-height:650px;background:#1f2937;border:3px solid white;border-radius:16px;overflow:hidden}
+#player{position:absolute;bottom:22px;width:42px;height:42px;background:#22c55e;border-radius:10px}
+.obstacle{position:absolute;top:-55px;width:45px;height:45px;background:#ef4444;border-radius:9px}
+button{margin:12px;padding:12px 24px;border:0;border-radius:10px;background:#22c55e;color:white;font-size:18px;font-weight:bold}
+#message{font-size:18px}
+</style>
+</head>
+<body>
+<h1>🚧 Évite les obstacles !</h1>
+<div id="score">Score : 0</div>
+<div id="game"><div id="player"></div></div>
+<button id="start">Jouer</button>
+<div id="message">Déplace ton doigt sur l'écran pour bouger.</div>
+<script>
+const game=document.querySelector('#game'),player=document.querySelector('#player');
+const scoreEl=document.querySelector('#score'),btn=document.querySelector('#start'),msg=document.querySelector('#message');
+let x=0,score=0,running=false,speed=4,last=0,spawn=0,obs=[];
+function reset(){
+ obs.forEach(o=>o.el.remove());obs=[];score=0;speed=4;
+ x=(game.clientWidth-42)/2;player.style.left=x+'px';scoreEl.textContent='Score : 0';
+}
+function start(){reset();running=true;last=performance.now();spawn=0;btn.textContent='Recommencer';msg.textContent='Bonne chance !';requestAnimationFrame(loop)}
+function move(px){let r=game.getBoundingClientRect();x=px-r.left-21;x=Math.max(0,Math.min(game.clientWidth-42,x));player.style.left=x+'px'}
+game.addEventListener('pointermove',e=>{if(running)move(e.clientX)});
+game.addEventListener('pointerdown',e=>{if(running)move(e.clientX)});
+function makeObstacle(){
+ let el=document.createElement('div');el.className='obstacle';
+ let ox=Math.random()*(game.clientWidth-45);el.style.left=ox+'px';game.appendChild(el);obs.push({el,x:ox,y:-55});
+}
+function collide(a,b){return a.x<b.x+45&&a.x+42>b.x&&a.y<b.y+45&&a.y+42>b.y}
+function loop(now){
+ if(!running)return;let dt=Math.min((now-last)/16.67,2);last=now;spawn+=dt;
+ if(spawn>55){makeObstacle();spawn=0;if(score>10)speed=5;if(score>25)speed=6}
+ let p={x:x,y:game.clientHeight-64};
+ for(let i=obs.length-1;i>=0;i--){
+  let o=obs[i];o.y+=speed*dt;o.el.style.transform='translateY('+o.y+'px)';
+  if(collide(p,o)){running=false;msg.textContent='💥 Perdu ! Score : '+score;return}
+  if(o.y>game.clientHeight){o.el.remove();obs.splice(i,1);score++;scoreEl.textContent='Score : '+score}
+ }
+ requestAnimationFrame(loop)
+}
+btn.onclick=start;reset();
+</script>
+</body>
+</html>
